@@ -1,11 +1,14 @@
 package com.vttrpg.voicechanger.relay.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -14,6 +17,7 @@ public class SseService {
     private static final Logger log = LoggerFactory.getLogger(SseService.class);
 
     private final ConcurrentHashMap<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void addEmitter(String slotId, SseEmitter emitter) {
         emitters.put(slotId, emitter);
@@ -46,16 +50,15 @@ public class SseService {
     }
 
     private String buildTtsPayload(String text, String speakerLabel, String messageType) {
-        // Manual JSON build to avoid Jackson dependency on this inner method
-        return "{\"text\":" + jsonString(text)
-                + ",\"speakerLabel\":" + jsonString(speakerLabel)
-                + ",\"messageType\":" + jsonString(messageType) + "}";
-    }
-
-    private String jsonString(String value) {
-        if (value == null) return "null";
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r") + "\"";
+        try {
+            return objectMapper.writeValueAsString(Map.of(
+                    "text", text != null ? text : "",
+                    "speakerLabel", speakerLabel != null ? speakerLabel : "",
+                    "messageType", messageType != null ? messageType : ""));
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize TTS payload", e);
+            return "{}";
+        }
     }
 
     private void sendEvent(String slotId, SseEmitter emitter, String eventName, String data) {

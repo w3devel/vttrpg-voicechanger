@@ -17,6 +17,8 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        // Credentials are not required for this LAN-only relay.
+        // IMPORTANT: Restrict origins before exposing this server to untrusted networks.
         config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

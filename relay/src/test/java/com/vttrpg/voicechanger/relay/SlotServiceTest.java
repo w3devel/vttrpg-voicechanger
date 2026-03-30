@@ -80,12 +80,14 @@ class SlotServiceTest {
         String token = response.joinUrl().split("token=")[1];
 
         Optional<Slot> first = slotService.claimSlot(token);
+        java.time.Instant claimedAtAfterFirst = first.get().getClaimedAt();
+
         Optional<Slot> second = slotService.claimSlot(token);
 
         assertThat(first).isPresent();
         assertThat(second).isPresent();
         assertThat(first.get().getSlotId()).isEqualTo(second.get().getSlotId());
-        // claimedAt should not change on second claim
-        assertThat(first.get().getClaimedAt()).isEqualTo(second.get().getClaimedAt());
+        // claimedAt must not change on reconnect; compare timestamp captured before second claim
+        assertThat(claimedAtAfterFirst).isEqualTo(second.get().getClaimedAt());
     }
 }

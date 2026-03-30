@@ -25,7 +25,7 @@ public class SlotService {
         }
 
         String slotId = UUID.randomUUID().toString();
-        String token = UUID.randomUUID().toString() + UUID.randomUUID().toString().replace("-", "");
+        String token = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
         String shortSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         String identityKey = label + "#" + shortSuffix;
 

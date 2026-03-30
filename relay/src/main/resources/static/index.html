@@ -323,6 +323,7 @@
 
     // ── SSE handling ──────────────────────────────────────────────────────────
     function shouldSpeak(messageType) {
+      // WHISPER always plays (no toggle checkbox — already targeted to this player)
       const cb = document.getElementById(`speak-${messageType}`);
       return cb ? cb.checked : true; // WHISPER always plays (no checkbox)
     }

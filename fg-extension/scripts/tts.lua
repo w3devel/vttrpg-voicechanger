@@ -26,6 +26,8 @@ function Module.onInit()
     -- Note: hook name may vary by FG version; adjust if needed
     if ChatManager.registerHook then
         ChatManager.registerHook("onChat", Module.onChatMessage)
+    else
+        Debug.chat("[VoiceChanger] WARNING: ChatManager.registerHook is unavailable in this FG version. Chat events will not be forwarded.")
     end
 
     Debug.chat("VTTRPG VoiceChanger loaded. Relay: " .. RELAY_BASE_URL)
