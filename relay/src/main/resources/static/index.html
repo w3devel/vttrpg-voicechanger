@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VTTRPG VoiceChanger</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    h1 { font-size: 1.4rem; color: #a78bfa; margin-bottom: 1rem; }
+    h2 { font-size: 1rem; color: #c4b5fd; margin-bottom: 0.5rem; }
+
+    .card {
+      background: #16213e;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    #status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    #status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #6b7280;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    #status-dot.connected    { background: #34d399; }
+    #status-dot.disconnected { background: #f87171; }
+    #status-dot.expired      { background: #fbbf24; }
+
+    label { display: block; margin-bottom: 0.25rem; font-size: 0.85rem; color: #9ca3af; }
+
+    select, input[type="range"], input[type="number"] {
+      width: 100%;
+      background: #0f3460;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    input[type="range"] { padding: 0.1rem 0; cursor: pointer; }
+
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 120px; }
+
+    .slider-row { display: flex; align-items: center; gap: 0.5rem; }
+    .slider-row input[type="range"] { flex: 1; }
+    .slider-val { min-width: 2.5rem; text-align: right; font-size: 0.85rem; color: #a78bfa; }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.4rem;
+    }
+    .checkbox-grid label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .checkbox-grid input[type="checkbox"] { accent-color: #a78bfa; width: 15px; height: 15px; }
+
+    .queue-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .queue-row label { margin: 0; white-space: nowrap; }
+    .queue-row input[type="number"] { width: 64px; }
+
+    #mute-btn {
+      background: #374151;
+      border: 1px solid #4b5563;
+      color: #e0e0e0;
+      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    #mute-btn.muted { background: #7f1d1d; border-color: #f87171; color: #fca5a5; }
+    #mute-btn:hover { filter: brightness(1.2); }
+
+    #log-list {
+      list-style: none;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      color: #9ca3af;
+    }
+    #log-list li {
+      padding: 0.2rem 0;
+      border-bottom: 1px solid #1f2937;
+      word-break: break-word;
+    }
+    #log-list li .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0 0.3rem;
+      border-radius: 3px;
+      margin-right: 0.3rem;
+      font-weight: 700;
+    }
+    .tag-IC     { background: #1e3a5f; color: #93c5fd; }
+    .tag-OOC    { background: #1f2937; color: #9ca3af; }
+    .tag-SYSTEM { background: #1c1917; color: #d97706; }
+    .tag-ROLL   { background: #1a1f2e; color: #a78bfa; }
+    .tag-WHISPER{ background: #1f1032; color: #f0abfc; }
+
+    #expired-msg {
+      display: none;
+      color: #fbbf24;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎙 VTTRPG VoiceChanger</h1>
+
+  <!-- Status -->
+  <div class="card">
+    <div id="status-bar">
+      <div id="status-dot"></div>
+      <span id="status-text">Connecting…</span>
+    </div>
+    <p id="expired-msg">⚠ Your link has expired. Please request a new join link.</p>
+  </div>
+
+  <!-- Voice settings -->
+  <div class="card">
+    <h2>Voice Settings</h2>
+    <div style="margin-bottom:0.75rem">
+      <label for="voice-select">Voice</label>
+      <select id="voice-select"><option value="">Default</option></select>
+    </div>
+    <div class="row">
+      <div>
+        <label>Rate <span class="slider-val" id="rate-val">1.0</span></label>
+        <div class="slider-row">
+          <input type="range" id="rate" min="0.5" max="2.0" step="0.05" value="1.0" />
+        </div>
+      </div>
+      <div>
+        <label>Pitch <span class="slider-val" id="pitch-val">1.0</span></label>
+        <div class="slider-row">
+          <input type="range" id="pitch" min="0" max="2" step="0.05" value="1.0" />
+        </div>
+      </div>
+      <div>
+        <label>Volume <span class="slider-val" id="vol-val">1.0</span></label>
+        <div class="slider-row">
+          <input type="range" id="volume" min="0" max="1" step="0.05" value="1.0" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message type toggles -->
+  <div class="card">
+    <h2>Speak Message Types</h2>
+    <div class="checkbox-grid">
+      <label><input type="checkbox" id="speak-IC" checked /> Speak IC</label>
+      <label><input type="checkbox" id="speak-OOC" /> Speak OOC</label>
+      <label><input type="checkbox" id="speak-SYSTEM" /> Speak SYSTEM</label>
+      <label><input type="checkbox" id="speak-ROLL" /> Speak ROLL</label>
+    </div>
+  </div>
+
+  <!-- Queue + Mute -->
+  <div class="card">
+    <h2>Queue &amp; Mute</h2>
+    <div class="queue-row" style="margin-bottom:0.75rem">
+      <label for="max-queue">Max queue:</label>
+      <input type="number" id="max-queue" min="1" max="50" value="5" />
+      <label style="display:flex;align-items:center;gap:0.4rem">
+        <input type="checkbox" id="skip-old" checked style="accent-color:#a78bfa;width:15px;height:15px" />
+        Skip old if full
+      </label>
+      <span style="font-size:0.85rem;color:#9ca3af">Queue: <strong id="queue-len">0</strong></span>
+    </div>
+    <button id="mute-btn">🔊 Unmuted</button>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <h2>Recent Messages</h2>
+    <ul id="log-list"></ul>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    const params   = new URLSearchParams(location.search);
+    const TOKEN    = params.get('token') || '';
+    let   es       = null;
+    let   muted    = false;
+    let   queue    = [];
+    let   speaking = false;
+    const LOG_MAX  = 10;
+
+    // ── DOM refs ───────────────────────────────────────────────────────────────
+    const statusDot   = document.getElementById('status-dot');
+    const statusText  = document.getElementById('status-text');
+    const expiredMsg  = document.getElementById('expired-msg');
+    const voiceSel    = document.getElementById('voice-select');
+    const rateIn      = document.getElementById('rate');
+    const pitchIn     = document.getElementById('pitch');
+    const volumeIn    = document.getElementById('volume');
+    const rateVal     = document.getElementById('rate-val');
+    const pitchVal    = document.getElementById('pitch-val');
+    const volVal      = document.getElementById('vol-val');
+    const muteBtn     = document.getElementById('mute-btn');
+    const maxQueueIn  = document.getElementById('max-queue');
+    const skipOldIn   = document.getElementById('skip-old');
+    const queueLen    = document.getElementById('queue-len');
+    const logList     = document.getElementById('log-list');
+
+    // ── Voices ─────────────────────────────────────────────────────────────────
+    function loadVoices() {
+      const voices = speechSynthesis.getVoices();
+      if (!voices.length) return;
+      voiceSel.innerHTML = '<option value="">Default</option>';
+      voices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSel.appendChild(opt);
+      });
+    }
+    loadVoices();
+    if (typeof speechSynthesis !== 'undefined') {
+      speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    }
+
+    // ── Sliders ────────────────────────────────────────────────────────────────
+    rateIn.addEventListener('input',   () => rateVal.textContent  = parseFloat(rateIn.value).toFixed(2));
+    pitchIn.addEventListener('input',  () => pitchVal.textContent = parseFloat(pitchIn.value).toFixed(2));
+    volumeIn.addEventListener('input', () => volVal.textContent   = parseFloat(volumeIn.value).toFixed(2));
+
+    // ── Mute ──────────────────────────────────────────────────────────────────
+    muteBtn.addEventListener('click', () => {
+      muted = !muted;
+      muteBtn.textContent = muted ? '🔇 Muted' : '🔊 Unmuted';
+      muteBtn.classList.toggle('muted', muted);
+      if (muted) speechSynthesis.cancel();
+    });
+
+    // ── Status helpers ────────────────────────────────────────────────────────
+    function setStatus(state, text) {
+      statusDot.className = state;
+      statusText.textContent = text;
+    }
+
+    // ── Log ───────────────────────────────────────────────────────────────────
+    function addLog(speakerLabel, messageType, text) {
+      const li   = document.createElement('li');
+      const tag  = document.createElement('span');
+      tag.className = `tag tag-${messageType}`;
+      tag.textContent = messageType;
+      li.appendChild(tag);
+      li.appendChild(document.createTextNode(`[${speakerLabel}] ${text}`));
+      logList.prepend(li);
+      while (logList.children.length > LOG_MAX) logList.removeChild(logList.lastChild);
+    }
+
+    // ── TTS queue ─────────────────────────────────────────────────────────────
+    function processQueue() {
+      if (speaking || queue.length === 0 || muted) return;
+      const item = queue.shift();
+      queueLen.textContent = queue.length;
+      speaking = true;
+
+      const voices   = speechSynthesis.getVoices();
+      const selName  = voiceSel.value;
+      const voice    = voices.find(v => v.name === selName) || null;
+
+      const utt      = new SpeechSynthesisUtterance(item.text);
+      utt.rate       = parseFloat(rateIn.value);
+      utt.pitch      = parseFloat(pitchIn.value);
+      utt.volume     = parseFloat(volumeIn.value);
+      if (voice) utt.voice = voice;
+
+      utt.onend = utt.onerror = () => {
+        speaking = false;
+        processQueue();
+      };
+      speechSynthesis.speak(utt);
+    }
+
+    function enqueue(item) {
+      const max = parseInt(maxQueueIn.value, 10) || 5;
+      if (queue.length >= max) {
+        if (skipOldIn.checked) queue.shift();
+        else return; // drop newest
+      }
+      queue.push(item);
+      queueLen.textContent = queue.length;
+      if (!speaking) processQueue();
+    }
+
+    // ── SSE handling ──────────────────────────────────────────────────────────
+    function shouldSpeak(messageType) {
+      // WHISPER always plays (no toggle checkbox — already targeted to this player)
+      const cb = document.getElementById(`speak-${messageType}`);
+      return cb ? cb.checked : true; // WHISPER always plays (no checkbox)
+    }
+
+    function connect() {
+      if (!TOKEN) {
+        setStatus('disconnected', 'No token in URL');
+        return;
+      }
+      es = new EventSource(`/api/sse?token=${encodeURIComponent(TOKEN)}`);
+
+      es.addEventListener('open', () => setStatus('connected', 'Connected'));
+
+      es.addEventListener('tts', e => {
+        let data;
+        try { data = JSON.parse(e.data); } catch { return; }
+        const { text, speakerLabel, messageType } = data;
+        addLog(speakerLabel || '?', messageType || 'IC', text || '');
+        if (shouldSpeak(messageType)) {
+          enqueue({ text: text || '', speakerLabel, messageType });
+        }
+      });
+
+      es.addEventListener('revoked', () => {
+        setStatus('expired', 'Link expired');
+        expiredMsg.style.display = 'block';
+        speechSynthesis.cancel();
+        es.close();
+      });
+
+      es.addEventListener('error', () => {
+        if (es.readyState === EventSource.CLOSED) {
+          setStatus('disconnected', 'Disconnected');
+        } else {
+          setStatus('disconnected', 'Connection error – retrying…');
+        }
+      });
+    }
+
+    connect();
+  </script>
+</body>
+</html>
