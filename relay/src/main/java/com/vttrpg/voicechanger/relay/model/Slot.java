@@ -10,7 +10,8 @@ public class Slot {
     private final Instant createdAt;
     private volatile Instant claimedAt;
     private volatile boolean active;
-    // Future Option 2: encrypted whispers
+    // TODO(Option 2): placeholder for future end-to-end encrypted whispers;
+    //   not used in v1 token-based routing
     private String encryptedKey;
 
     public Slot(String slotId, String label, String identityKey, String token,
