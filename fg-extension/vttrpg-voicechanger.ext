@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root version="4.1">
+  <properties>
+    <name>VTTRPG VoiceChanger</name>
+    <version>0.1.0</version>
+    <author>w3devel</author>
+    <description>TTS relay integration for Fantasy Grounds. Posts chat events to a local relay server for text-to-speech broadcast to players.</description>
+  </properties>
+  <script name="tts" file="scripts/tts.lua" />
+</root>
